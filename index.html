@@ -50,13 +50,7 @@
   .btn-hoje { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); color:white; padding:0 11px; height:32px; border-radius:7px; cursor:pointer; font-size:.76rem; font-weight:600; font-family:'DM Sans',sans-serif; transition:background .2s; }
   .btn-hoje:hover { background:rgba(255,255,255,.24); }
   .header-right { display:flex; align-items:center; gap:8px; }
-  .btn-reservar-header {
-    background:#ec4899; color:white; font-weight:700; font-size:.82rem;
-    padding:0 16px; height:36px; border-radius:8px; border:none; cursor:pointer;
-    font-family:'DM Sans',sans-serif; display:flex; align-items:center; gap:6px;
-    transition:opacity .2s; white-space:nowrap;
-  }
-  .btn-reservar-header:hover { opacity:.88; }
+  .btn-reservar-header { display:none; }
   .btn-add {
     background:white; color:#7e22ce; font-weight:700; font-size:.82rem;
     padding:0 14px; height:36px; border-radius:8px; border:none; cursor:pointer;
@@ -109,7 +103,7 @@
   .slot { border-bottom:1px solid #f0e6ff; border-right:1px solid var(--border); min-height:36px; position:relative; transition:background .12s; }
   .slot.clicavel { cursor:pointer; }
   .slot.clicavel:hover { background:var(--pink-light); }
-  .slot.clicavel:hover::after { content:'+ reservar'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:.6rem; font-weight:700; color:var(--pink); letter-spacing:.03em; pointer-events:none; }
+  .slot.clicavel:hover::after { content:'+ adicionar'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:.6rem; font-weight:700; color:var(--pink); letter-spacing:.03em; pointer-events:none; }
   .slot.meia { border-bottom-style:dashed; border-bottom-color:#ede9fe; }
 
   /* Cards agendamento */
@@ -226,17 +220,32 @@
   .chat-opt.destaque { background:var(--pink-light); border-color:var(--pink-mid); color:#9d174d; }
   .chat-footer-link { padding:7px 12px; border-top:1px solid var(--border); text-align:center; font-size:.72rem; color:var(--gray); }
 
-  /* ════ BTN RESERVAR FLUTUANTE ════ */
-  .btn-reservar-float {
-    position:fixed; bottom:24px; left:24px; z-index:200;
-    background:linear-gradient(135deg,#be185d,#ec4899);
-    color:white; font-weight:700; font-size:.85rem;
-    padding:0 20px; height:48px; border-radius:24px; border:none;
-    cursor:pointer; display:flex; align-items:center; gap:8px;
-    box-shadow:0 4px 20px rgba(236,72,153,.4); font-family:'DM Sans',sans-serif;
-    animation:pulse-pink 2.5s infinite; transition:transform .2s;
+  /* ════ QUICK-ADD POPOVER ════ */
+  .quick-pop {
+    position:fixed; z-index:400; background:white; border-radius:16px;
+    box-shadow:0 8px 40px rgba(88,28,135,.22); padding:14px 16px;
+    width:230px; display:none; flex-direction:column; gap:9px;
+    border:1.5px solid var(--lilac-mid); animation:fadeUp .18s ease;
   }
-  .btn-reservar-float:hover { transform:scale(1.03); animation:none; }
+  .quick-pop.open { display:flex; }
+  .quick-pop-header { display:flex; align-items:center; justify-content:space-between; }
+  .quick-pop-title { font-size:.78rem; font-weight:700; color:var(--dark); }
+  .quick-pop-slot { font-size:.72rem; color:var(--gray); }
+  .quick-pop input, .quick-pop select {
+    width:100%; padding:7px 10px; border:1.5px solid var(--border);
+    border-radius:8px; font-family:'DM Sans',sans-serif; font-size:.83rem;
+    color:var(--text); outline:none; transition:border .15s;
+  }
+  .quick-pop input:focus, .quick-pop select:focus { border-color:var(--pink); }
+  .quick-pop-btns { display:flex; gap:7px; }
+  .quick-pop-btns button { flex:1; padding:8px 0; border-radius:8px; border:none; font-family:'DM Sans',sans-serif; font-size:.8rem; font-weight:700; cursor:pointer; }
+  .qp-salvar { background:var(--pink); color:white; }
+  .qp-salvar:hover { opacity:.88; }
+  .qp-cancelar { background:var(--gray-light); color:var(--gray); border:1.5px solid var(--border) !important; }
+  .qp-cancelar:hover { background:var(--border); }
+  .qp-tel-toggle { font-size:.72rem; color:var(--pink); cursor:pointer; text-decoration:underline; background:none; border:none; font-family:'DM Sans',sans-serif; padding:0; }
+  .qp-tel-wrap { display:none; }
+  .qp-tel-wrap.open { display:block; }
   @keyframes pulse-pink { 0%,100%{box-shadow:0 4px 20px rgba(236,72,153,.4)} 50%{box-shadow:0 4px 28px rgba(236,72,153,.65)} }
 
   /* ════ TOAST ════ */
@@ -283,7 +292,6 @@
   </div>
 
   <div class="header-right">
-    <button class="btn-reservar-header" onclick="abrirReservaCliente()">📅 Reservar horário</button>
     <button class="btn-add" id="btnAdd" onclick="abrirModalNovo()">+ Agendar</button>
     <button class="btn-lock" id="btnLock" onclick="abrirPinModal()" title="Acesso profissional">
       🔒<div class="modo-badge" id="modoBadge"></div>
@@ -313,10 +321,30 @@
   <div class="agenda-grid" id="agendaGrid"></div>
 </div>
 
-<!-- ══ BTN FLUTUANTE RESERVAR ══ -->
-<button class="btn-reservar-float" onclick="abrirReservaCliente()">
-  💅 <span class="txt">Reservar meu horário</span>
-</button>
+<!-- ══ QUICK-ADD POPOVER ══ -->
+<div class="quick-pop" id="quickPop">
+  <div class="quick-pop-header">
+    <span class="quick-pop-title">✂️ Novo agendamento</span>
+    <span class="quick-pop-slot" id="qpSlotLabel"></span>
+  </div>
+  <input id="qpNome" type="text" placeholder="Nome da cliente" autocomplete="off" />
+  <select id="qpServico">
+    <option value="escova">💇 Escova de cabelo</option>
+    <option value="progressiva">✨ Progressiva</option>
+    <option value="pintura">🎨 Pintura de cabelo</option>
+    <option value="cilios">👁️ Extensão de cílios</option>
+    <option value="unhas">💅 Unhas</option>
+    <option value="outro">📌 Outro</option>
+  </select>
+  <button class="qp-tel-toggle" onclick="toggleQpTel()">+ Adicionar telefone</button>
+  <div class="qp-tel-wrap" id="qpTelWrap">
+    <input id="qpTel" type="tel" placeholder="WhatsApp (opcional)" oninput="mascaraTel(this)" />
+  </div>
+  <div class="quick-pop-btns">
+    <button class="qp-cancelar" onclick="fecharQuickPop()">Cancelar</button>
+    <button class="qp-salvar" onclick="salvarQuickAdd()">Salvar ✓</button>
+  </div>
+</div>
 
 <!-- ══ MODAL PROFISSIONAL (novo/editar) ══ -->
 <div class="overlay" id="modalOverlay">
@@ -647,9 +675,10 @@ function renderizar() {
       if (isOcupado) { cell.className='slot meia'; cell.style.background='#f5f0ff'; }
       else {
         cell.className = 'slot'+(slot.endsWith(':30')?' meia':'');
-        cell.classList.add('clicavel');
-        if (modoProf) { cell.onclick = ()=>abrirModalNovo(slot,prof); }
-        else { cell.onclick = ()=>abrirReservaClienteSlot(slot,prof); }
+        if (modoProf) {
+          cell.classList.add('clicavel');
+          cell.onclick = e => abrirQuickPop(slot, prof, e.currentTarget);
+        }
       }
       grid.appendChild(cell);
     });
@@ -663,6 +692,47 @@ function preencherHoras() {
   const sel = document.getElementById('fHora'); sel.innerHTML='';
   SLOTS.forEach(s => { const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
 }
+// ══════════════════════════════════════
+//  QUICK-ADD POPOVER
+// ══════════════════════════════════════
+let qpSlot=null, qpProf=null;
+function abrirQuickPop(slot, prof, cell) {
+  qpSlot=slot; qpProf=prof;
+  document.getElementById('qpNome').value='';
+  document.getElementById('qpServico').value='escova';
+  document.getElementById('qpTel').value='';
+  document.getElementById('qpTelWrap').classList.remove('open');
+  document.getElementById('qpSlotLabel').textContent=`${slot} · ${prof}`;
+  const pop=document.getElementById('quickPop');
+  const rect=cell.getBoundingClientRect();
+  const top=Math.min(rect.top+window.scrollY, window.innerHeight+window.scrollY-280);
+  const left=Math.min(rect.left+window.scrollX+rect.width+6, window.innerWidth+window.scrollX-246);
+  pop.style.top=Math.max(top,80)+'px';
+  pop.style.left=Math.max(left,8)+'px';
+  pop.classList.add('open');
+  setTimeout(()=>document.getElementById('qpNome').focus(), 60);
+}
+function fecharQuickPop() {
+  document.getElementById('quickPop').classList.remove('open');
+  qpSlot=null; qpProf=null;
+}
+function toggleQpTel() {
+  const w=document.getElementById('qpTelWrap');
+  w.classList.toggle('open');
+  if(w.classList.contains('open')) document.getElementById('qpTel').focus();
+}
+function salvarQuickAdd() {
+  const nome=document.getElementById('qpNome').value.trim();
+  if(!nome){ document.getElementById('qpNome').focus(); document.getElementById('qpNome').style.borderColor='#ec4899'; return; }
+  document.getElementById('qpNome').style.borderColor='';
+  const servico=document.getElementById('qpServico').value;
+  const tel=document.getElementById('qpTel').value.trim();
+  const dur=SERVICOS[servico]?.dur||2;
+  agendamentos.push({ id:Date.now().toString(), data:dataAtual, hora:qpSlot, cliente:nome, tel, servico, profissional:qpProf, duracao:String(dur), status:'confirmado', obs:'', origem:'prof' });
+  salvarStorage(); fecharQuickPop(); renderizar(); toast(`✅ ${nome} adicionada — ${qpSlot}`);
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') fecharQuickPop(); });
+
 function abrirModalNovo(hora=null, prof=null) {
   if (!modoProf) return;
   editandoId=null;
@@ -771,21 +841,7 @@ function abrirReservaCliente() {
   document.getElementById('reservaOverlay').classList.add('open');
   carregarSlotsDisponiveis();
 }
-function abrirReservaClienteSlot(slot, prof) {
-  abrirReservaCliente();
-  // aguarda o modal renderizar os slots e pré-seleciona o slot clicado
-  setTimeout(()=>{
-    slotSelecionado={slot,prof};
-    document.querySelectorAll('.slot-option').forEach(el=>{
-      const h=el.querySelector('.s-hora');
-      const p=el.querySelector('.s-prof');
-      if(h&&p&&h.textContent.includes(slot)&&p.textContent.includes(prof)){
-        el.classList.add('selecionado');
-        el.scrollIntoView({block:'nearest',behavior:'smooth'});
-      }
-    });
-  }, 120);
-}
+
 function fecharReserva() { document.getElementById('reservaOverlay').classList.remove('open'); }
 
 function carregarSlotsDisponiveis() {
