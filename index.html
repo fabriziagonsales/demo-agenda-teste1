@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alto Beleza — Agenda</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pink:       #ec4899;
+    --pink-light: #fce7f3;
+    --pink-mid:   #fbcfe8;
+    --lilac:      #a78bfa;
+    --lilac-light:#ede9fe;
+    --lilac-mid:  #ddd6fe;
+    --white:      #ffffff;
+    --gray:       #6b7280;
+    --gray-light: #f9fafb;
+    --border:     #f3e8ff;
+    --dark:       #3b0764;
+    --text:       #1f2937;
+
+    /* cor por profissional */
+    --cor-aline:  #ec4899;
+    --cor-fabia:  #a78bfa;
+    --cor-bruna:  #f472b6;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { font-family:'DM Sans',sans-serif; background:var(--gray-light); color:var(--text); min-height:100vh; }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #7e22ce 0%, #be185d 100%);
+    padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    box-shadow: 0 4px 20px rgba(126,34,206,.3);
+    position: sticky; top: 0; z-index: 50;
+    min-height: 72px;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none;
+  }
+  .logo-icon {
+    width: 44px; height: 44px;
+    background: rgba(255,255,255,.15);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    border: 1px solid rgba(255,255,255,.25);
+  }
+  .logo-text strong {
+    display: block; font-family:'Cormorant Garamond',serif;
+    font-size: 1.4rem; font-weight: 700; color: white; line-height: 1;
+  }
+  .logo-text span { font-size:.72rem; color:rgba(255,255,255,.65); letter-spacing:.1em; text-transform:uppercase; }
+
+  .header-nav { display:flex; align-items:center; gap:8px; }
+  .nav-date {
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.1rem; font-weight:600; color:white;
+    min-width:200px; text-align:center;
+  }
+  .nav-date small { display:block; font-family:'DM Sans',sans-serif; font-size:.72rem; color:rgba(255,255,255,.6); font-weight:400; }
+  .btn-nav {
+    background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25);
+    color:white; width:36px; height:36px; border-radius:8px;
+    cursor:pointer; font-size:1rem; transition:background .2s;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .btn-nav:hover { background:rgba(255,255,255,.25); }
+  .btn-hoje {
+    background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25);
+    color:white; padding:0 14px; height:36px; border-radius:8px;
+    cursor:pointer; font-size:.8rem; font-weight:600; transition:background .2s;
+    font-family:'DM Sans',sans-serif;
+  }
+  .btn-hoje:hover { background:rgba(255,255,255,.25); }
+  .btn-add {
+    background:white; color:#7e22ce; font-weight:700; font-size:.88rem;
+    padding:0 18px; height:38px; border-radius:8px; border:none;
+    cursor:pointer; display:flex; align-items:center; gap:6px;
+    transition:opacity .2s; white-space:nowrap;
+    font-family:'DM Sans',sans-serif;
+  }
+  .btn-add:hover { opacity:.88; }
+
+  /* ── LEGENDA PROFISSIONAIS ── */
+  .profissionais-bar {
+    background:white; border-bottom:1px solid var(--border);
+    padding:10px 24px;
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  .prof-chip {
+    display:flex; align-items:center; gap:6px;
+    font-size:.82rem; font-weight:600; color:var(--dark);
+  }
+  .prof-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+  /* ── GRID AGENDA ── */
+  .agenda-wrap { overflow-x:auto; padding-bottom:60px; }
+  .agenda-grid {
+    display:grid;
+    grid-template-columns: 64px repeat(3, 1fr);
+    min-width:500px;
+  }
+
+  /* cabeçalho colunas */
+  .col-header {
+    background:white; border-bottom:2px solid var(--border);
+    padding:14px 10px; text-align:center; font-size:.82rem;
+    font-weight:600; color:var(--dark); position:sticky; top:72px; z-index:10;
+    border-right:1px solid var(--border);
+  }
+  .col-header:first-child { background:var(--gray-light); }
+  .col-header .prof-avatar {
+    width:36px; height:36px; border-radius:50%; margin:0 auto 6px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1rem; font-weight:700; color:white;
+  }
+
+  /* célula horário */
+  .time-cell {
+    background:var(--gray-light); border-right:1px solid var(--border);
+    border-bottom:1px solid #f3f4f6;
+    padding:0 8px; display:flex; align-items:flex-start; justify-content:flex-end;
+    padding-top:6px;
+    font-size:.72rem; color:var(--gray); font-weight:500;
+  }
+  .time-cell.hora-cheia { color:var(--dark); font-weight:700; }
+
+  /* célula agendamento */
+  .slot {
+    border-bottom:1px solid #f3f4f6; border-right:1px solid var(--border);
+    min-height:36px; position:relative; cursor:pointer;
+    transition:background .15s;
+  }
+  .slot:hover { background:var(--pink-light); }
+  .slot.meia { border-bottom-style:dashed; border-bottom-color:#f0e6ff; }
+
+  .appt {
+    position:absolute; inset:2px; border-radius:8px;
+    padding:4px 8px; cursor:pointer; z-index:5;
+    overflow:hidden; border-left:3px solid transparent;
+    transition:opacity .2s, transform .2s;
+  }
+  .appt:hover { opacity:.9; transform:scale(1.01); }
+  .appt-nome { font-size:.78rem; font-weight:700; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .appt-serv { font-size:.7rem; opacity:.8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .appt-hora { font-size:.65rem; opacity:.65; }
+
+  /* Cores por serviço */
+  .s-escova      { background:#fce7f3; border-left-color:#ec4899; color:#9d174d; }
+  .s-progressiva { background:#ede9fe; border-left-color:#7c3aed; color:#4c1d95; }
+  .s-pintura     { background:#fef3c7; border-left-color:#d97706; color:#78350f; }
+  .s-cilios      { background:#d1fae5; border-left-color:#059669; color:#064e3b; }
+  .s-unhas       { background:#fee2e2; border-left-color:#dc2626; color:#7f1d1d; }
+  .s-outro       { background:#e0f2fe; border-left-color:#0284c7; color:#0c4a6e; }
+
+  /* ── MODAL ── */
+  .overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.45);
+    z-index:100; display:none; align-items:center; justify-content:center; padding:16px;
+  }
+  .overlay.open { display:flex; }
+  .modal {
+    background:white; border-radius:20px; width:100%; max-width:420px;
+    box-shadow:0 20px 60px rgba(0,0,0,.2);
+    animation:fadeUp .25s ease;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .modal-header {
+    background:linear-gradient(135deg,#7e22ce,#be185d);
+    padding:20px 24px; border-radius:20px 20px 0 0;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .modal-header h3 { font-family:'Cormorant Garamond',serif; font-size:1.3rem; font-weight:700; color:white; }
+  .btn-close { background:rgba(255,255,255,.2); border:none; color:white; width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:1rem; }
+  .modal-body { padding:24px; display:flex; flex-direction:column; gap:14px; }
+  .form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .fgroup { display:flex; flex-direction:column; gap:5px; }
+  .fgroup label { font-size:.78rem; font-weight:600; color:var(--dark); }
+  .fgroup input, .fgroup select, .fgroup textarea {
+    border:1px solid var(--border); border-radius:8px;
+    padding:10px 12px; font-family:'DM Sans',sans-serif; font-size:.88rem;
+    color:var(--text); background:var(--gray-light); outline:none;
+    transition:border-color .2s;
+  }
+  .fgroup input:focus, .fgroup select:focus, .fgroup textarea:focus { border-color:var(--pink); background:white; }
+  .fgroup textarea { resize:vertical; min-height:60px; }
+  .modal-footer { padding:0 24px 24px; display:flex; gap:10px; }
+  .btn-salvar {
+    flex:1; background:linear-gradient(135deg,#7e22ce,#be185d);
+    color:white; font-weight:700; font-size:.9rem; padding:12px;
+    border:none; border-radius:10px; cursor:pointer; transition:opacity .2s;
+    font-family:'DM Sans',sans-serif;
+  }
+  .btn-salvar:hover { opacity:.88; }
+  .btn-cancelar {
+    background:var(--gray-light); color:var(--gray); font-weight:600;
+    font-size:.9rem; padding:12px 20px; border:1px solid var(--border);
+    border-radius:10px; cursor:pointer; font-family:'DM Sans',sans-serif;
+  }
+  .btn-excluir {
+    background:#fee2e2; color:#dc2626; font-weight:600; font-size:.9rem;
+    padding:12px 16px; border:1px solid #fecaca;
+    border-radius:10px; cursor:pointer; font-family:'DM Sans',sans-serif;
+    transition:background .2s;
+  }
+  .btn-excluir:hover { background:#fecaca; }
+
+  /* ── MODAL DETALHES ── */
+  .detalhe-card {
+    background:var(--gray-light); border-radius:12px; padding:14px 16px;
+    display:flex; flex-direction:column; gap:6px; margin-bottom:4px;
+  }
+  .detalhe-card .d-row { display:flex; gap:8px; align-items:center; font-size:.88rem; }
+  .detalhe-card .d-label { font-weight:600; color:var(--dark); min-width:80px; }
+  .detalhe-card .d-val { color:var(--gray); }
+
+  /* ── VAZIO ── */
+  .dia-vazio {
+    grid-column: 2 / -1;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:60px 20px; color:var(--gray); gap:12px; text-align:center;
+  }
+  .dia-vazio .emoji { font-size:3rem; }
+  .dia-vazio p { font-size:.9rem; }
+
+  /* ── TOAST ── */
+  .toast {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:#1f2937; color:white; padding:10px 20px; border-radius:10px;
+    font-size:.85rem; font-weight:500; z-index:200;
+    opacity:0; pointer-events:none; transition:opacity .3s;
+    white-space:nowrap;
+  }
+  .toast.show { opacity:1; }
+
+  /* ── RESPONSIVO ── */
+  @media(max-width:640px) {
+    .nav-date { font-size:.95rem; min-width:130px; }
+    .btn-add span { display:none; }
+    .col-header { padding:10px 6px; font-size:.75rem; }
+    .col-header .prof-avatar { width:28px; height:28px; font-size:.8rem; }
+    header { padding:0 14px; gap:10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">✂️</div>
+    <div class="logo-text">
+      <strong>Alto Beleza</strong>
+      <span>Agenda do salão</span>
+    </div>
+  </div>
+  <div class="header-nav">
+    <button class="btn-nav" onclick="mudarDia(-1)">‹</button>
+    <div class="nav-date" id="navDate"></div>
+    <button class="btn-nav" onclick="mudarDia(1)">›</button>
+    <button class="btn-hoje" onclick="irHoje()">Hoje</button>
+  </div>
+  <button class="btn-add" onclick="abrirModalNovo()">
+    <span>+</span> <span>Novo agendamento</span>
+  </button>
+</header>
+
+<!-- LEGENDA -->
+<div class="profissionais-bar">
+  <span style="font-size:.78rem;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.08em">Profissionais:</span>
+  <div class="prof-chip"><div class="prof-dot" style="background:var(--cor-aline)"></div> Aline</div>
+  <div class="prof-chip"><div class="prof-dot" style="background:var(--cor-fabia)"></div> Fabia</div>
+  <div class="prof-chip"><div class="prof-dot" style="background:var(--cor-bruna)"></div> Bruna</div>
+  <span style="margin-left:auto;font-size:.75rem;color:var(--gray)">Clique em um horário para agendar</span>
+</div>
+
+<!-- AGENDA -->
+<div class="agenda-wrap">
+  <div class="agenda-grid" id="agendaGrid"></div>
+</div>
+
+<!-- MODAL NOVO/EDITAR -->
+<div class="overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitulo">Novo Agendamento</h3>
+      <button class="btn-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row-2">
+        <div class="fgroup">
+          <label>Data</label>
+          <input type="date" id="fData">
+        </div>
+        <div class="fgroup">
+          <label>Horário</label>
+          <select id="fHora"></select>
+        </div>
+      </div>
+      <div class="fgroup">
+        <label>Nome do cliente</label>
+        <input type="text" id="fCliente" placeholder="Ex: Maria Silva">
+      </div>
+      <div class="form-row-2">
+        <div class="fgroup">
+          <label>Serviço</label>
+          <select id="fServico">
+            <option value="escova">✂️ Escova de cabelo</option>
+            <option value="progressiva">💆 Progressiva</option>
+            <option value="pintura">🎨 Pintura de cabelo</option>
+            <option value="cilios">👁️ Extensão de cílios</option>
+            <option value="unhas">💅 Unhas</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="fgroup">
+          <label>Profissional</label>
+          <select id="fProfissional">
+            <option value="Aline">Aline</option>
+            <option value="Fabia">Fabia</option>
+            <option value="Bruna">Bruna</option>
+          </select>
+        </div>
+      </div>
+      <div class="fgroup">
+        <label>Duração estimada</label>
+        <select id="fDuracao">
+          <option value="1">30 minutos</option>
+          <option value="2" selected>1 hora</option>
+          <option value="3">1h30</option>
+          <option value="4">2 horas</option>
+          <option value="6">3 horas</option>
+          <option value="8">4 horas</option>
+        </select>
+      </div>
+      <div class="fgroup">
+        <label>Telefone (opcional)</label>
+        <input type="tel" id="fTel" placeholder="(47) 00000-0000" oninput="mascaraTel(this)">
+      </div>
+      <div class="fgroup">
+        <label>Observações (opcional)</label>
+        <textarea id="fObs" placeholder="Ex: cliente alérgica a amônia..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" id="modalFooter">
+      <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-salvar" onclick="salvar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHES -->
+<div class="overlay" id="detalheOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="detalheTitulo">Agendamento</h3>
+      <button class="btn-close" onclick="fecharDetalhe()">✕</button>
+    </div>
+    <div class="modal-body" id="detalheBody"></div>
+    <div class="modal-footer">
+      <button class="btn-excluir" onclick="excluir()">🗑️ Excluir</button>
+      <button class="btn-cancelar" onclick="fecharDetalhe()">Fechar</button>
+      <button class="btn-salvar" onclick="editarAtual()" style="flex:1">✏️ Editar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── DADOS ──
+  const PROFISSIONAIS = ['Aline', 'Fabia', 'Bruna'];
+  const COR_PROF = { Aline:'#ec4899', Fabia:'#a78bfa', Bruna:'#f472b6' };
+  const SERVICOS = {
+    escova:      { nome:'Escova de cabelo', emoji:'✂️' },
+    progressiva: { nome:'Progressiva',      emoji:'💆' },
+    pintura:     { nome:'Pintura de cabelo',emoji:'🎨' },
+    cilios:      { nome:'Extensão de cílios',emoji:'👁️' },
+    unhas:       { nome:'Unhas',            emoji:'💅' },
+    outro:       { nome:'Outro',            emoji:'📌' },
+  };
+
+  // horários 08:00 até 20:00 em slots de 30min
+  const SLOTS = [];
+  for (let h = 8; h < 20; h++) {
+    SLOTS.push(`${String(h).padStart(2,'0')}:00`);
+    SLOTS.push(`${String(h).padStart(2,'0')}:30`);
+  }
+  SLOTS.push('20:00');
+
+  let dataAtual = hoje();
+  let agendamentos = JSON.parse(localStorage.getItem('altobeleza_ag') || '[]');
+  let editandoId = null;
+  let detalheId = null;
+
+  function hoje() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function salvarStorage() {
+    localStorage.setItem('altobeleza_ag', JSON.stringify(agendamentos));
+  }
+
+  function mudarDia(delta) {
+    const d = new Date(dataAtual + 'T12:00:00');
+    d.setDate(d.getDate() + delta);
+    dataAtual = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    renderizar();
+  }
+
+  function irHoje() {
+    dataAtual = hoje();
+    renderizar();
+  }
+
+  // ── RENDER ──
+  function renderizar() {
+    // atualiza data no header
+    const d = new Date(dataAtual + 'T12:00:00');
+    const dias = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    document.getElementById('navDate').innerHTML =
+      `${dias[d.getDay()]}<small>${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}</small>`;
+
+    const grid = document.getElementById('agendaGrid');
+    grid.innerHTML = '';
+
+    // cabeçalho
+    const chTime = document.createElement('div');
+    chTime.className = 'col-header';
+    chTime.style.cssText = 'background:var(--gray-light)';
+    chTime.innerHTML = '<small style="color:var(--gray);font-size:.7rem">HORA</small>';
+    grid.appendChild(chTime);
+
+    PROFISSIONAIS.forEach(p => {
+      const ch = document.createElement('div');
+      ch.className = 'col-header';
+      ch.innerHTML = `<div class="prof-avatar" style="background:${COR_PROF[p]}">${p[0]}</div>${p}`;
+      grid.appendChild(ch);
+    });
+
+    // agendamentos do dia
+    const agDia = agendamentos.filter(a => a.data === dataAtual);
+
+    // linhas de slots
+    SLOTS.forEach((slot, si) => {
+      const isMeia = slot.endsWith(':30');
+      const isHoraCheia = slot.endsWith(':00');
+
+      // célula hora
+      const tc = document.createElement('div');
+      tc.className = 'time-cell' + (isHoraCheia ? ' hora-cheia' : '');
+      tc.textContent = isHoraCheia ? slot : '';
+      grid.appendChild(tc);
+
+      // células por profissional
+      PROFISSIONAIS.forEach(prof => {
+        const cell = document.createElement('div');
+        cell.className = 'slot' + (isMeia ? ' meia' : '');
+        cell.onclick = () => abrirModalNovo(slot, prof);
+
+        // verifica agendamentos que ocupam esse slot
+        agDia.filter(a => a.profissional === prof).forEach(ag => {
+          const inicio = SLOTS.indexOf(ag.hora);
+          const fim = inicio + parseInt(ag.duracao);
+          if (si === inicio) {
+            // renderiza o card
+            const card = document.createElement('div');
+            card.className = `appt s-${ag.servico}`;
+            card.style.height = `${parseInt(ag.duracao) * 36 - 4}px`;
+            card.style.zIndex = 5;
+            card.innerHTML = `
+              <div class="appt-nome">${ag.cliente}</div>
+              <div class="appt-serv">${SERVICOS[ag.servico]?.emoji} ${SERVICOS[ag.servico]?.nome || ag.servico}</div>
+              <div class="appt-hora">${ag.hora}</div>
+            `;
+            card.onclick = e => { e.stopPropagation(); abrirDetalhe(ag.id); };
+            cell.appendChild(card);
+          } else if (si > inicio && si < fim) {
+            // slot ocupado — bloqueia clique visual
+            cell.style.background = 'var(--gray-light)';
+            cell.onclick = null;
+          }
+        });
+
+        grid.appendChild(cell);
+      });
+    });
+  }
+
+  // ── MODAL NOVO ──
+  function preencherHoras() {
+    const sel = document.getElementById('fHora');
+    sel.innerHTML = '';
+    SLOTS.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s; opt.textContent = s;
+      sel.appendChild(opt);
+    });
+  }
+
+  function abrirModalNovo(hora = null, prof = null) {
+    editandoId = null;
+    document.getElementById('modalTitulo').textContent = 'Novo Agendamento';
+    preencherHoras();
+    document.getElementById('fData').value = dataAtual;
+    document.getElementById('fHora').value = hora || SLOTS[0];
+    document.getElementById('fCliente').value = '';
+    document.getElementById('fServico').value = 'escova';
+    document.getElementById('fProfissional').value = prof || PROFISSIONAIS[0];
+    document.getElementById('fDuracao').value = '2';
+    document.getElementById('fTel').value = '';
+    document.getElementById('fObs').value = '';
+    document.getElementById('modalFooter').innerHTML = `
+      <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-salvar" onclick="salvar()">Salvar</button>
+    `;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function fecharModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  function salvar() {
+    const data     = document.getElementById('fData').value;
+    const hora     = document.getElementById('fHora').value;
+    const cliente  = document.getElementById('fCliente').value.trim();
+    const servico  = document.getElementById('fServico').value;
+    const prof     = document.getElementById('fProfissional').value;
+    const duracao  = document.getElementById('fDuracao').value;
+    const tel      = document.getElementById('fTel').value.trim();
+    const obs      = document.getElementById('fObs').value.trim();
+
+    if (!cliente) { alert('Por favor, informe o nome do cliente.'); return; }
+
+    if (editandoId) {
+      const idx = agendamentos.findIndex(a => a.id === editandoId);
+      if (idx > -1) agendamentos[idx] = { id:editandoId, data, hora, cliente, servico, profissional:prof, duracao, tel, obs };
+    } else {
+      agendamentos.push({ id: Date.now().toString(), data, hora, cliente, servico, profissional:prof, duracao, tel, obs });
+    }
+    salvarStorage();
+    fecharModal();
+    if (data === dataAtual) renderizar();
+    toast(editandoId ? 'Agendamento atualizado!' : 'Agendamento salvo! ✨');
+  }
+
+  // ── DETALHE ──
+  function abrirDetalhe(id) {
+    const ag = agendamentos.find(a => a.id === id);
+    if (!ag) return;
+    detalheId = id;
+    document.getElementById('detalheTitulo').textContent = ag.cliente;
+    const d = new Date(ag.data + 'T12:00:00');
+    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const dur = {1:'30min',2:'1h',3:'1h30',4:'2h',6:'3h',8:'4h'}[ag.duracao] || ag.duracao;
+    document.getElementById('detalheBody').innerHTML = `
+      <div class="detalhe-card">
+        <div class="d-row"><span class="d-label">📅 Data</span><span class="d-val">${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}</span></div>
+        <div class="d-row"><span class="d-label">🕐 Horário</span><span class="d-val">${ag.hora} — duração ${dur}</span></div>
+        <div class="d-row"><span class="d-label">💇 Serviço</span><span class="d-val">${SERVICOS[ag.servico]?.emoji} ${SERVICOS[ag.servico]?.nome || ag.servico}</span></div>
+        <div class="d-row"><span class="d-label">👩 Profissional</span><span class="d-val" style="font-weight:700;color:${COR_PROF[ag.profissional]}">${ag.profissional}</span></div>
+        ${ag.tel ? `<div class="d-row"><span class="d-label">📱 Telefone</span><span class="d-val">${ag.tel}</span></div>` : ''}
+        ${ag.obs ? `<div class="d-row"><span class="d-label">📝 Obs</span><span class="d-val">${ag.obs}</span></div>` : ''}
+      </div>
+    `;
+    document.getElementById('detalheOverlay').classList.add('open');
+  }
+
+  function fecharDetalhe() {
+    document.getElementById('detalheOverlay').classList.remove('open');
+  }
+
+  function excluir() {
+    if (!confirm('Excluir este agendamento?')) return;
+    agendamentos = agendamentos.filter(a => a.id !== detalheId);
+    salvarStorage();
+    fecharDetalhe();
+    renderizar();
+    toast('Agendamento excluído.');
+  }
+
+  function editarAtual() {
+    const ag = agendamentos.find(a => a.id === detalheId);
+    if (!ag) return;
+    fecharDetalhe();
+    editandoId = ag.id;
+    document.getElementById('modalTitulo').textContent = 'Editar Agendamento';
+    preencherHoras();
+    document.getElementById('fData').value = ag.data;
+    document.getElementById('fHora').value = ag.hora;
+    document.getElementById('fCliente').value = ag.cliente;
+    document.getElementById('fServico').value = ag.servico;
+    document.getElementById('fProfissional').value = ag.profissional;
+    document.getElementById('fDuracao').value = ag.duracao;
+    document.getElementById('fTel').value = ag.tel || '';
+    document.getElementById('fObs').value = ag.obs || '';
+    document.getElementById('modalFooter').innerHTML = `
+      <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-salvar" onclick="salvar()">Atualizar</button>
+    `;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  // ── UTILS ──
+  function mascaraTel(el) {
+    let v = el.value.replace(/\D/g,'').slice(0,11);
+    if (v.length > 10) v = v.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3');
+    else if (v.length > 6) v = v.replace(/(\d{2})(\d{4})(\d+)/,'($1) $2-$3');
+    else if (v.length > 2) v = v.replace(/(\d{2})(\d+)/,'($1) $2');
+    el.value = v;
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // fechar overlay clicando fora
+  document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) fecharModal();
+  });
+  document.getElementById('detalheOverlay').addEventListener('click', function(e) {
+    if (e.target === this) fecharDetalhe();
+  });
+
+  // iniciar
+  renderizar();
+</script>
+</body>
+</html>
