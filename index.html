@@ -328,14 +328,15 @@
     <span class="quick-pop-slot" id="qpSlotLabel"></span>
   </div>
   <input id="qpNome" type="text" placeholder="Nome da cliente" autocomplete="off" />
-  <select id="qpServico">
-    <option value="escova">💇 Escova de cabelo</option>
-    <option value="progressiva">✨ Progressiva</option>
+  <select id="qpServico" onchange="qpAutoPreco()">
+    <option value="escova">✂️ Escova de cabelo</option>
+    <option value="progressiva">💆 Progressiva</option>
     <option value="pintura">🎨 Pintura de cabelo</option>
     <option value="cilios">👁️ Extensão de cílios</option>
     <option value="unhas">💅 Unhas</option>
     <option value="outro">📌 Outro</option>
   </select>
+  <input id="qpValor" type="number" min="0" step="0.01" placeholder="Valor R$ (edite se necessário)" />
   <button class="qp-tel-toggle" onclick="toggleQpTel()">+ Adicionar telefone</button>
   <div class="qp-tel-wrap" id="qpTelWrap">
     <input id="qpTel" type="tel" placeholder="WhatsApp (opcional)" oninput="mascaraTel(this)" />
@@ -390,14 +391,17 @@
             <option value="8">4 horas</option>
           </select>
         </div>
-        <div class="fgroup"><label>Status</label>
-          <select id="fStatus">
-            <option value="aguardando">⏳ Aguardando</option>
-            <option value="confirmado">✅ Confirmado</option>
-            <option value="concluido">🎀 Concluído</option>
-            <option value="cancelado">❌ Cancelado</option>
-          </select>
+        <div class="fgroup"><label>Valor (R$)</label>
+          <input type="number" id="fValor" min="0" step="0.01" placeholder="0,00" />
         </div>
+      </div>
+      <div class="fgroup"><label>Status</label>
+        <select id="fStatus">
+          <option value="aguardando">⏳ Aguardando</option>
+          <option value="confirmado">✅ Confirmado</option>
+          <option value="concluido">🎀 Concluído</option>
+          <option value="cancelado">❌ Cancelado</option>
+        </select>
       </div>
       <div class="fgroup"><label>Observações</label><textarea id="fObs" placeholder="Ex: alérgica a amônia..."></textarea></div>
     </div>
@@ -509,6 +513,7 @@
     <button class="chat-opt" onclick="chatCmd('fabia')">💜 Horários da Fabia</button>
     <button class="chat-opt" onclick="chatCmd('bruna')">🌸 Horários da Bruna</button>
     <button class="chat-opt" onclick="chatCmd('livre')">✅ Próximo horário livre</button>
+    <button class="chat-opt" style="background:#d1fae5;border-color:#6ee7b7;color:#065f46" onclick="chatCmd('fechamento')">💰 Fechamento do dia</button>
   </div>
   <div class="chat-footer-link">Clique em 💬 para enviar confirmação via WhatsApp</div>
 </div>
@@ -522,12 +527,12 @@
 const PROFISSIONAIS = ['Aline','Fabia','Bruna'];
 const COR = { Aline:'#ec4899', Fabia:'#8b5cf6', Bruna:'#f43f5e' };
 const SERVICOS = {
-  escova:      { nome:'Escova de cabelo',  emoji:'✂️', dur:2 },
-  progressiva: { nome:'Progressiva',        emoji:'💆', dur:6 },
-  pintura:     { nome:'Pintura de cabelo',  emoji:'🎨', dur:4 },
-  cilios:      { nome:'Ext. de cílios',     emoji:'👁️', dur:3 },
-  unhas:       { nome:'Unhas',              emoji:'💅', dur:2 },
-  outro:       { nome:'Outro',              emoji:'📌', dur:2 },
+  escova:      { nome:'Escova de cabelo',  emoji:'✂️', dur:2, preco:60  },
+  progressiva: { nome:'Progressiva',        emoji:'💆', dur:6, preco:280 },
+  pintura:     { nome:'Pintura de cabelo',  emoji:'🎨', dur:4, preco:180 },
+  cilios:      { nome:'Ext. de cílios',     emoji:'👁️', dur:3, preco:150 },
+  unhas:       { nome:'Unhas',              emoji:'💅', dur:2, preco:70  },
+  outro:       { nome:'Outro',              emoji:'📌', dur:2, preco:0   },
 };
 const STATUS_LABEL = { aguardando:'⏳ Aguardando', confirmado:'✅ Confirmado', concluido:'🎀 Concluído', cancelado:'❌ Cancelado', pendente:'🕐 Pendente' };
 const STATUS_CLS   = { aguardando:'st-aguardando', confirmado:'st-confirmado', concluido:'st-concluido', cancelado:'st-cancelado' };
@@ -619,13 +624,18 @@ function renderizar() {
   const chips = document.getElementById('resumoChips');
   chips.innerHTML = '';
   PROFISSIONAIS.forEach(p => {
-    const n = agDia.filter(a => a.profissional===p).length;
+    const ags = agDia.filter(a => a.profissional===p);
+    const n = ags.length;
+    const total = ags.reduce((s,a)=>s+(parseFloat(a.valor)||0),0);
     const c = document.createElement('div'); c.className='resumo-chip';
-    c.innerHTML = `<div class="prof-dot" style="background:${COR[p]}"></div>${p}: <strong>${n}</strong>`;
+    const valorStr = modoProf && total>0 ? ` · <span style="color:#16a34a;font-weight:700">R$ ${total.toFixed(2).replace('.',',')}</span>` : '';
+    c.innerHTML = `<div class="prof-dot" style="background:${COR[p]}"></div>${p}: <strong>${n}</strong>${valorStr}`;
     chips.appendChild(c);
   });
   const extra = document.getElementById('resumoExtra');
-  extra.innerHTML = `<div class="resumo-total">${agDia.length} agendamento${agDia.length!==1?'s':''}</div>`;
+  const totalDia = agDia.reduce((s,a)=>s+(parseFloat(a.valor)||0),0);
+  const totalStr = modoProf && totalDia>0 ? ` · R$ ${totalDia.toFixed(2).replace('.',',')}` : '';
+  extra.innerHTML = `<div class="resumo-total">${agDia.length} agendamento${agDia.length!==1?'s':''}${totalStr}</div>`;
   const pend = agendamentos.filter(a => a.status==='pendente').length;
   if (pend > 0) {
     const al = document.createElement('div'); al.className='pendentes-alerta';
@@ -696,10 +706,15 @@ function preencherHoras() {
 //  QUICK-ADD POPOVER
 // ══════════════════════════════════════
 let qpSlot=null, qpProf=null;
+function qpAutoPreco() {
+  const s=document.getElementById('qpServico').value;
+  document.getElementById('qpValor').value=SERVICOS[s]?.preco||'';
+}
 function abrirQuickPop(slot, prof, cell) {
   qpSlot=slot; qpProf=prof;
   document.getElementById('qpNome').value='';
   document.getElementById('qpServico').value='escova';
+  document.getElementById('qpValor').value=SERVICOS['escova'].preco;
   document.getElementById('qpTel').value='';
   document.getElementById('qpTelWrap').classList.remove('open');
   document.getElementById('qpSlotLabel').textContent=`${slot} · ${prof}`;
@@ -727,8 +742,9 @@ function salvarQuickAdd() {
   document.getElementById('qpNome').style.borderColor='';
   const servico=document.getElementById('qpServico').value;
   const tel=document.getElementById('qpTel').value.trim();
+  const valor=parseFloat(document.getElementById('qpValor').value)||0;
   const dur=SERVICOS[servico]?.dur||2;
-  agendamentos.push({ id:Date.now().toString(), data:dataAtual, hora:qpSlot, cliente:nome, tel, servico, profissional:qpProf, duracao:String(dur), status:'confirmado', obs:'', origem:'prof' });
+  agendamentos.push({ id:Date.now().toString(), data:dataAtual, hora:qpSlot, cliente:nome, tel, servico, profissional:qpProf, duracao:String(dur), status:'confirmado', obs:'', origem:'prof', valor });
   salvarStorage(); fecharQuickPop(); renderizar(); toast(`✅ ${nome} adicionada — ${qpSlot}`);
 }
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') fecharQuickPop(); });
@@ -743,6 +759,8 @@ function abrirModalNovo(hora=null, prof=null) {
   document.getElementById('fCliente').value='';
   document.getElementById('fTel').value='';
   document.getElementById('fServico').value='escova';
+  document.getElementById('fServico').onchange=()=>{ const s=document.getElementById('fServico').value; document.getElementById('fValor').value=SERVICOS[s]?.preco||''; };
+  document.getElementById('fValor').value=SERVICOS['escova'].preco;
   document.getElementById('fProfissional').value=prof||PROFISSIONAIS[0];
   document.getElementById('fDuracao').value='2';
   document.getElementById('fStatus').value='aguardando';
@@ -756,13 +774,14 @@ function salvar() {
         cliente=document.getElementById('fCliente').value.trim(), tel=document.getElementById('fTel').value.trim(),
         servico=document.getElementById('fServico').value, prof=document.getElementById('fProfissional').value,
         duracao=document.getElementById('fDuracao').value, status=document.getElementById('fStatus').value,
-        obs=document.getElementById('fObs').value.trim();
+        obs=document.getElementById('fObs').value.trim(),
+        valor=parseFloat(document.getElementById('fValor').value)||0;
   if (!cliente) { alert('Informe o nome do cliente.'); return; }
   if (editandoId) {
     const idx=agendamentos.findIndex(a=>a.id===editandoId);
-    if (idx>-1) agendamentos[idx]={id:editandoId,data,hora,cliente,tel,servico,profissional:prof,duracao,status,obs};
+    if (idx>-1) agendamentos[idx]={id:editandoId,data,hora,cliente,tel,servico,profissional:prof,duracao,status,obs,valor};
   } else {
-    agendamentos.push({id:Date.now().toString(),data,hora,cliente,tel,servico,profissional:prof,duracao,status,obs});
+    agendamentos.push({id:Date.now().toString(),data,hora,cliente,tel,servico,profissional:prof,duracao,status,obs,valor});
   }
   salvarStorage(); fecharModal(); if(data===dataAtual) renderizar();
   toast(editandoId?'Atualizado! ✨':'Agendamento salvo! 💜');
@@ -790,6 +809,7 @@ function abrirDetalhe(id) {
     <div class="d-row"><span class="d-label">👩 Profissional</span><span class="d-val" style="font-weight:700;color:${COR[ag.profissional]}">${ag.profissional}</span></div>
     ${ag.tel?`<div class="d-row"><span class="d-label">📱 Telefone</span><span class="d-val">${ag.tel}</span></div>`:''}
     <div class="d-row"><span class="d-label">📌 Status</span><span class="d-val">${STATUS_LABEL[ag.status]||'—'}</span></div>
+    ${ag.valor!=null&&ag.valor>0?`<div class="d-row"><span class="d-label">💰 Valor</span><span class="d-val" style="font-weight:700;color:#16a34a">R$ ${Number(ag.valor).toFixed(2).replace('.',',')}</span></div>`:''}
     ${ag.obs?`<div class="d-row"><span class="d-label">📝 Obs</span><span class="d-val">${ag.obs}</span></div>`:''}
   </div>`;
 
@@ -819,7 +839,9 @@ function editarAtual() {
   document.getElementById('fData').value=ag.data; document.getElementById('fHora').value=ag.hora;
   document.getElementById('fCliente').value=ag.cliente; document.getElementById('fTel').value=ag.tel||'';
   document.getElementById('fServico').value=ag.servico; document.getElementById('fProfissional').value=ag.profissional;
+  document.getElementById('fServico').onchange=()=>{ const s=document.getElementById('fServico').value; document.getElementById('fValor').value=SERVICOS[s]?.preco||''; };
   document.getElementById('fDuracao').value=ag.duracao; document.getElementById('fStatus').value=ag.status||'aguardando';
+  document.getElementById('fValor').value=ag.valor!=null?ag.valor:(SERVICOS[ag.servico]?.preco||0);
   document.getElementById('fObs').value=ag.obs||'';
   document.getElementById('modalFooter').innerHTML=`<button class="btn-cancelar" onclick="fecharModal()">Cancelar</button><button class="btn-salvar" onclick="salvar()">Atualizar</button>`;
   document.getElementById('modalOverlay').classList.add('open');
@@ -965,7 +987,7 @@ function chatCmd(cmd) {
     hoje:'📋 Agendamentos de hoje', amanha:'🔔 Lembretes de amanhã',
     proxima:'⏭️ Próxima cliente', pendentes:'⏳ Reservas pendentes',
     aline:'💗 Horários da Aline', fabia:'💜 Horários da Fabia', bruna:'🌸 Horários da Bruna',
-    livre:'✅ Próximo horário livre'
+    livre:'✅ Próximo horário livre', fechamento:'💰 Fechamento do dia'
   };
   addMsgChat(labels[cmd]||cmd, 'user');
 
@@ -1011,6 +1033,26 @@ function chatCmd(cmd) {
       const lista=agDia.filter(a=>a.profissional===nome);
       if (!lista.length) { addMsgChat(`${nome} não tem agendamentos hoje. 😊`, 'bot'); return; }
       addMsgChat(`<strong>${nome} — ${lista.length} atendimento${lista.length>1?'s':''} hoje:</strong>${buildList(lista)}`, 'bot');
+    }
+    else if (cmd==='fechamento') {
+      const agFech=agendamentos.filter(a=>a.data===dataAtual && a.status!=='cancelado');
+      if (!agFech.length) { addMsgChat('Nenhum atendimento registrado hoje. 📋', 'bot'); return; }
+      const fmt=v=>Number(v||0).toFixed(2).replace('.',',');
+      let html=`<strong>💰 Fechamento — ${document.getElementById('navDate').textContent.replace(/\s+/g,' ')}</strong><br><br>`;
+      let totalGeral=0;
+      PROFISSIONAIS.forEach(p=>{
+        const lista=agFech.filter(a=>a.profissional===p);
+        if(!lista.length) return;
+        const subtotal=lista.reduce((s,a)=>s+(parseFloat(a.valor)||0),0);
+        totalGeral+=subtotal;
+        html+=`<div style="margin:6px 0 3px;font-weight:700;color:${COR[p]}">${p} — ${lista.length} atendimento${lista.length>1?'s':''} — <span style="color:#16a34a">R$ ${fmt(subtotal)}</span></div>`;
+        lista.sort((a,b)=>a.hora.localeCompare(b.hora)).forEach(a=>{
+          const v=parseFloat(a.valor)||0;
+          html+=`<div style="font-size:.77rem;color:#374151;padding-left:10px">🕐 ${a.hora} ${a.cliente} · ${SERVICOS[a.servico]?.nome||a.servico}${v>0?` — <strong>R$ ${fmt(v)}</strong>`:' — <em>sem valor</em>'}</div>`;
+        });
+      });
+      html+=`<div style="margin-top:10px;padding-top:8px;border-top:2px solid var(--border);font-weight:800;font-size:.9rem;color:#15803d">💵 TOTAL DO DIA: R$ ${fmt(totalGeral)}</div>`;
+      addMsgChat(html, 'bot');
     }
     else if (cmd==='livre') {
       const agora=new Date();
