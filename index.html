@@ -109,6 +109,7 @@
   .slot { border-bottom:1px solid #f0e6ff; border-right:1px solid var(--border); min-height:36px; position:relative; transition:background .12s; }
   .slot.clicavel { cursor:pointer; }
   .slot.clicavel:hover { background:var(--pink-light); }
+  .slot.clicavel:hover::after { content:'+ reservar'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:.6rem; font-weight:700; color:var(--pink); letter-spacing:.03em; pointer-events:none; }
   .slot.meia { border-bottom-style:dashed; border-bottom-color:#ede9fe; }
 
   /* Cards agendamento */
@@ -646,7 +647,9 @@ function renderizar() {
       if (isOcupado) { cell.className='slot meia'; cell.style.background='#f5f0ff'; }
       else {
         cell.className = 'slot'+(slot.endsWith(':30')?' meia':'');
-        if (modoProf) { cell.classList.add('clicavel'); cell.onclick = ()=>abrirModalNovo(slot,prof); }
+        cell.classList.add('clicavel');
+        if (modoProf) { cell.onclick = ()=>abrirModalNovo(slot,prof); }
+        else { cell.onclick = ()=>abrirReservaClienteSlot(slot,prof); }
       }
       grid.appendChild(cell);
     });
@@ -767,6 +770,21 @@ function abrirReservaCliente() {
   document.getElementById('slotsDisponiveis').innerHTML='<div class="no-slots">Selecione a data e o serviço para ver os horários 📅</div>';
   document.getElementById('reservaOverlay').classList.add('open');
   carregarSlotsDisponiveis();
+}
+function abrirReservaClienteSlot(slot, prof) {
+  abrirReservaCliente();
+  // aguarda o modal renderizar os slots e pré-seleciona o slot clicado
+  setTimeout(()=>{
+    slotSelecionado={slot,prof};
+    document.querySelectorAll('.slot-option').forEach(el=>{
+      const h=el.querySelector('.s-hora');
+      const p=el.querySelector('.s-prof');
+      if(h&&p&&h.textContent.includes(slot)&&p.textContent.includes(prof)){
+        el.classList.add('selecionado');
+        el.scrollIntoView({block:'nearest',behavior:'smooth'});
+      }
+    });
+  }, 120);
 }
 function fecharReserva() { document.getElementById('reservaOverlay').classList.remove('open'); }
 
