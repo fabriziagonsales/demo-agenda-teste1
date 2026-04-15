@@ -50,7 +50,13 @@
   .btn-hoje { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); color:white; padding:0 11px; height:32px; border-radius:7px; cursor:pointer; font-size:.76rem; font-weight:600; font-family:'DM Sans',sans-serif; transition:background .2s; }
   .btn-hoje:hover { background:rgba(255,255,255,.24); }
   .header-right { display:flex; align-items:center; gap:8px; }
-  .btn-reservar-header { display:none; }
+  .btn-reservar-header {
+    background:rgba(255,255,255,.13); border:1.5px solid rgba(255,255,255,.35);
+    color:white; font-weight:700; font-size:.8rem; padding:0 14px; height:36px;
+    border-radius:8px; cursor:pointer; font-family:'DM Sans',sans-serif;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; transition:background .2s;
+  }
+  .btn-reservar-header:hover { background:rgba(255,255,255,.24); }
   .btn-add {
     background:white; color:#7e22ce; font-weight:700; font-size:.82rem;
     padding:0 14px; height:36px; border-radius:8px; border:none; cursor:pointer;
@@ -292,9 +298,10 @@
   </div>
 
   <div class="header-right">
+    <button class="btn-reservar-header" id="btnReservar" onclick="abrirReservaCliente()">📅 Reservar</button>
     <button class="btn-add" id="btnAdd" onclick="abrirModalNovo()">+ Agendar</button>
     <button class="btn-lock" id="btnLock" onclick="abrirPinModal()" title="Acesso profissional">
-      🔒<div class="modo-badge" id="modoBadge"></div>
+      <span id="btnLockIcon">🔒</span><div class="modo-badge" id="modoBadge"></div>
     </button>
   </div>
 </header>
@@ -541,9 +548,10 @@ const PIN_CORRETO  = 'alto1234'; // ← senha das profissionais
 const SLOTS = [];
 for (let h=8; h<20; h++) { SLOTS.push(`${pad(h)}:00`); SLOTS.push(`${pad(h)}:30`); }
 SLOTS.push('20:00');
+const SLOT_IDX = Object.fromEntries(SLOTS.map((s,i) => [s, i]));
 
 let dataAtual   = hoje();
-let agendamentos = JSON.parse(localStorage.getItem('altobeleza_ag') || '[]');
+let agendamentos = (() => { try { return JSON.parse(localStorage.getItem('altobeleza_ag') || '[]'); } catch(e) { return []; } })();
 let modoProf     = sessionStorage.getItem('altobeleza_prof') === '1';
 let editandoId   = null, detalheId = null, slotSelecionado = null;
 
@@ -565,8 +573,8 @@ function aplicarModo() {
   document.getElementById('btnAdd').style.display        = modoProf ? 'flex' : 'none';
   document.getElementById('modoBadge').style.display     = modoProf ? 'flex' : 'none';
   document.getElementById('btnLock').title = modoProf ? 'Sair do modo profissional' : 'Acesso profissional';
-  document.getElementById('btnLock').textContent = modoProf ? '🔓' : '🔒';
-  if (modoProf) { const b = document.getElementById('modoBadge'); b.style.display='flex'; }
+  document.getElementById('btnLockIcon').textContent = modoProf ? '🔓' : '🔒';
+  document.getElementById('btnReservar').style.display  = modoProf ? 'none' : 'flex';
   renderizar();
 }
 
@@ -621,19 +629,27 @@ function renderizar() {
 
   // resumo
   const agDia = agendamentos.filter(a => a.data===dataAtual && a.status!=='cancelado');
+
+  // pré-agrupa por profissional uma vez
+  const agPorProf = {};
+  let totalDia = 0;
+  PROFISSIONAIS.forEach(p => { agPorProf[p] = []; });
+  agDia.forEach(a => {
+    if (agPorProf[a.profissional]) agPorProf[a.profissional].push(a);
+    totalDia += parseFloat(a.valor) || 0;
+  });
+
   const chips = document.getElementById('resumoChips');
   chips.innerHTML = '';
   PROFISSIONAIS.forEach(p => {
-    const ags = agDia.filter(a => a.profissional===p);
-    const n = ags.length;
+    const ags = agPorProf[p];
     const total = ags.reduce((s,a)=>s+(parseFloat(a.valor)||0),0);
     const c = document.createElement('div'); c.className='resumo-chip';
     const valorStr = modoProf && total>0 ? ` · <span style="color:#16a34a;font-weight:700">R$ ${total.toFixed(2).replace('.',',')}</span>` : '';
-    c.innerHTML = `<div class="prof-dot" style="background:${COR[p]}"></div>${p}: <strong>${n}</strong>${valorStr}`;
+    c.innerHTML = `<div class="prof-dot" style="background:${COR[p]}"></div>${p}: <strong>${ags.length}</strong>${valorStr}`;
     chips.appendChild(c);
   });
   const extra = document.getElementById('resumoExtra');
-  const totalDia = agDia.reduce((s,a)=>s+(parseFloat(a.valor)||0),0);
   const totalStr = modoProf && totalDia>0 ? ` · R$ ${totalDia.toFixed(2).replace('.',',')}` : '';
   extra.innerHTML = `<div class="resumo-total">${agDia.length} agendamento${agDia.length!==1?'s':''}${totalStr}</div>`;
   const pend = agendamentos.filter(a => a.status==='pendente').length;
@@ -645,36 +661,43 @@ function renderizar() {
   }
   atualizarBadge();
 
-  // grid
+  // grid — DocumentFragment: 1 reflow ao invés de ~90
+  const agendDia = agendamentos.filter(a => a.data===dataAtual);
+  const agendDiaPorProf = {};
+  PROFISSIONAIS.forEach(p => { agendDiaPorProf[p] = agendDia.filter(a=>a.profissional===p); });
+
   const grid = document.getElementById('agendaGrid');
-  grid.innerHTML = '';
+  const frag = document.createDocumentFragment();
+
   const chT = document.createElement('div'); chT.className='col-header';
   chT.innerHTML='<small style="color:var(--gray);font-size:.62rem">HORA</small>';
-  grid.appendChild(chT);
+  frag.appendChild(chT);
   PROFISSIONAIS.forEach(p => {
     const ch = document.createElement('div'); ch.className='col-header';
     ch.innerHTML=`<div class="prof-avatar" style="background:${COR[p]}">${p[0]}</div>${p}`;
-    grid.appendChild(ch);
+    frag.appendChild(ch);
   });
 
-  const agendDia = agendamentos.filter(a => a.data===dataAtual);
   SLOTS.forEach((slot,si) => {
+    const isCheia = slot.endsWith(':00');
     const tc = document.createElement('div');
-    tc.className='time-cell'+(slot.endsWith(':00')?' hora-cheia':'');
-    tc.textContent = slot.endsWith(':00') ? slot : '';
-    grid.appendChild(tc);
+    tc.className='time-cell'+(isCheia?' hora-cheia':'');
+    tc.textContent = isCheia ? slot : '';
+    frag.appendChild(tc);
 
     PROFISSIONAIS.forEach(prof => {
       const cell = document.createElement('div');
       let isOcupado = false;
 
-      agendDia.filter(a=>a.profissional===prof).forEach(ag => {
-        const ini = SLOTS.indexOf(ag.hora), fim = ini+parseInt(ag.duracao);
+      agendDiaPorProf[prof].forEach(ag => {
+        const ini = SLOT_IDX[ag.hora] ?? -1;
+        const dur = parseInt(ag.duracao);
+        const fim = ini + dur;
         if (si===ini) {
           const card = document.createElement('div');
           const isPend = ag.status==='pendente';
           card.className = `appt s-${ag.servico}${isPend?' pendente':''}`;
-          card.style.height = `${parseInt(ag.duracao)*36-4}px`;
+          card.style.height = `${dur*36-4}px`;
           const stBadge = (!isPend && ag.status) ? `<span class="appt-status ${STATUS_CLS[ag.status]||''}">${ag.status}</span>` : '';
           card.innerHTML = `${stBadge}<div class="appt-nome">${ag.cliente}</div><div class="appt-serv">${SERVICOS[ag.servico]?.emoji} ${SERVICOS[ag.servico]?.nome||ag.servico}</div><div class="appt-hora">${ag.hora}</div>`;
           card.onclick = e => { e.stopPropagation(); abrirDetalhe(ag.id); };
@@ -684,15 +707,18 @@ function renderizar() {
 
       if (isOcupado) { cell.className='slot meia'; cell.style.background='#f5f0ff'; }
       else {
-        cell.className = 'slot'+(slot.endsWith(':30')?' meia':'');
+        cell.className = 'slot'+(isCheia?'':' meia');
         if (modoProf) {
           cell.classList.add('clicavel');
           cell.onclick = e => abrirQuickPop(slot, prof, e.currentTarget);
         }
       }
-      grid.appendChild(cell);
+      frag.appendChild(cell);
     });
   });
+
+  grid.innerHTML = '';
+  grid.appendChild(frag);
 }
 
 // ══════════════════════════════════════
@@ -720,8 +746,13 @@ function abrirQuickPop(slot, prof, cell) {
   document.getElementById('qpSlotLabel').textContent=`${slot} · ${prof}`;
   const pop=document.getElementById('quickPop');
   const rect=cell.getBoundingClientRect();
-  const top=Math.min(rect.top+window.scrollY, window.innerHeight+window.scrollY-280);
-  const left=Math.min(rect.left+window.scrollX+rect.width+6, window.innerWidth+window.scrollX-246);
+  const popW=250, popH=300;
+  // tenta à direita; se não couber, abre à esquerda
+  let left = rect.right + 6;
+  if (left + popW > window.innerWidth) left = rect.left - popW - 6;
+  // alinha com o slot; se não couber embaixo, sobe
+  let top = rect.top;
+  if (top + popH > window.innerHeight) top = window.innerHeight - popH - 8;
   pop.style.top=Math.max(top,80)+'px';
   pop.style.left=Math.max(left,8)+'px';
   pop.classList.add('open');
@@ -779,9 +810,9 @@ function salvar() {
   if (!cliente) { alert('Informe o nome do cliente.'); return; }
   if (editandoId) {
     const idx=agendamentos.findIndex(a=>a.id===editandoId);
-    if (idx>-1) agendamentos[idx]={id:editandoId,data,hora,cliente,tel,servico,profissional:prof,duracao,status,obs,valor};
+    if (idx>-1) agendamentos[idx]={id:editandoId,data,hora,cliente,tel,servico,profissional:prof,duracao,status,obs,valor,origem:agendamentos[idx].origem||'prof'};
   } else {
-    agendamentos.push({id:Date.now().toString(),data,hora,cliente,tel,servico,profissional:prof,duracao,status,obs,valor});
+    agendamentos.push({id:Date.now().toString(),data,hora,cliente,tel,servico,profissional:prof,duracao,status,obs,valor,origem:'prof'});
   }
   salvarStorage(); fecharModal(); if(data===dataAtual) renderizar();
   toast(editandoId?'Atualizado! ✨':'Agendamento salvo! 💜');
@@ -881,8 +912,10 @@ function carregarSlotsDisponiveis() {
     // slots ocupados por esta profissional
     const ocupados=new Set();
     agDia.filter(a=>a.profissional===prof).forEach(ag => {
-      const ini=SLOTS.indexOf(ag.hora);
-      for(let i=ini;i<ini+parseInt(ag.duracao);i++) ocupados.add(i);
+      const ini=SLOT_IDX[ag.hora]??-1;
+      if(ini<0) return;
+      const dur=parseInt(ag.duracao);
+      for(let i=ini;i<ini+dur;i++) ocupados.add(i);
     });
     // encontra slots livres
     SLOTS.forEach((slot,si) => {
@@ -1058,7 +1091,7 @@ function chatCmd(cmd) {
       const agora=new Date();
       const horaAgora=`${pad(agora.getHours())}:${pad(agora.getMinutes()>=30?30:0)}`;
       const ocupados={};
-      agDia.forEach(ag=>{ const ini=SLOTS.indexOf(ag.hora); for(let i=ini;i<ini+parseInt(ag.duracao);i++){if(!ocupados[ag.profissional])ocupados[ag.profissional]=new Set();ocupados[ag.profissional].add(SLOTS[i]);} });
+      agDia.forEach(ag=>{ const ini=SLOT_IDX[ag.hora]??-1; if(ini<0) return; const dur=parseInt(ag.duracao); for(let i=ini;i<ini+dur;i++){if(!ocupados[ag.profissional])ocupados[ag.profissional]=new Set();ocupados[ag.profissional].add(SLOTS[i]);} });
       const res=PROFISSIONAIS.map(p=>{ const prox=SLOTS.find(s=>s>=horaAgora&&!(ocupados[p]?.has(s))); return prox?`<strong style="color:${COR[p]}">${p}</strong>: ${prox}`:null; }).filter(Boolean);
       addMsgChat(res.length?`Próximos horários livres hoje:<br>${res.join('<br>')}`:'Não há mais horários livres hoje. 🌙','bot');
     }
